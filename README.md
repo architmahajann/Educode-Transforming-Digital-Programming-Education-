@@ -35,7 +35,7 @@ The main goal of Educode is to advance E-Learning by addressing two significant 
 
 **Server:** NodeJs, MongoDB, Socket.io, Express.js
 
-**Others:**  JWT Authentication, Cloudinary 
+**Others:** PostMan, JWT Authentication, Cloudinary 
 <hr>
 
 ## Architecture of Extension
