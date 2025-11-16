@@ -43,74 +43,61 @@ The main goal of Educode is to advance E-Learning by addressing two significant 
 <hr>
 
 ## Flow Diagram
-<p align="center">
-  <img src="Demo/Screenshot 2024-06-07 143137.png" alt="image"/>
-</p>
 
-<hr>
 
-## Screenshots
 
-<p align="center">
-  <p>Landing Page</p>
-  <img src="Demo/Screenshot (782).png" alt="image"/>
-</p>
+### Demo Screenshots
 
-<p align="center">
-  <p>Form Details to create room</p>
-  <img src="Demo/Screenshot (783).png" alt="image"/>
-</p>
+<details>
+<summary>Click to expand all demo screenshots</summary>
 
-<p align="center">
-  <p>Links of created rooms</p>
-  <img src="Demo/Screenshot (784).png" alt="image"/>
-</p>
+<p align="center"><img src="Demo/Screenshot 2025-11-13 235605.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-13 235632.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-13 235706.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-13 235742.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-13 235904.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-13 235930.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-13 235947.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000043.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000105.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000129.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000157.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000232.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000253.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000334.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000345.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000403.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000421.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000436.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000501.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000521.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000741.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000752.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000927.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 000943.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 001017.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 001159.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 001417.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 001431.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 001549.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 001605.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 001647.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 104414.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 104427.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 104449.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 201314.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-14 202028.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-15 145703.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-16 005204.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-16 112705.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-16 120926.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-16 121404.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-16 132932.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-16 152426.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-16 161504.png" alt="image" /></p>
+<p align="center"><img src="Demo/Screenshot 2025-11-16 162255.png" alt="image" /></p>
 
-<p align="center">
-  <p>Allows users to input their details and test invitation code.</p>
-  <img src="Demo/Screenshot (785).png" alt="image"/>
-</p>
-
-<p align="center">
-  <p>Join room by filling details[Proctoring is Started by webcam]</p>
-  <img src="Demo/Screenshot (786).png" alt="image"/>
-</p>
-
-<p align="center">
-  <p>Filled the details</p>
-  <img src="Demo/Screenshot (787).png" alt="image"/>
-</p>
-
-<p align="center">
-  <p>Time limited Room alloted to student named Archit with random question allocated with proctoring On</p>
-  <img src="Demo/Screenshot (788).png" alt="image"/>
-</p>
-
-<p align="center">
-  <p>Admin room, Admin can manage the room, guide, and verify each student's code in real-time.</p>
-  <img src="Demo/Screenshot (789).png" alt="image"/>
-</p>
-
-<p align="center">
-  <p>Tab switch Alert, After 3 alerts student test will end</p>
-  <img src="Demo/Screenshot (790).png" alt="image"/>
-</p>
-
-<p align="center">
-  <p>Admin can download the submitted code as a PDF for review.</p>
-  <img src="Demo/Screenshot (791).png" alt="image"/>
-</p>
-
-<p align="center">
-  <p>Admin dashboard, Displays all user information, allows setting the interval for image capture, and shows images with timestamps.
-</p>
-  <img src="Demo/Screenshot (792).png" alt="image"/>
-</p>
-
-<p align="center">
-  <p>Our Extension</p>
-  <img src="Demo/Screenshot 2024-06-07 093233.png" alt="image"/>
-</p>
+</details>
 
 <hr>
 
