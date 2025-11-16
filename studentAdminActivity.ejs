@@ -1,0 +1,164 @@
+<script>
+// Admin activity tracking functions (run after script.js loads socket)
+(function() {
+    // Wait for global socket to be ready
+    function initAdminActivityTracking() {
+        const socket = window.socket;
+        if (!socket) {
+            console.warn('Socket not yet available, retrying...');
+            setTimeout(initAdminActivityTracking, 100);
+            return;
+        }
+
+        console.log('Initializing admin activity tracking with socket:', socket);
+
+        let adminStatus = 'offline';
+        const adminPanel = document.getElementById('tabalerts');
+
+        // Admin activity tracking functions
+        window.updateAdminStatus = function(status, message) {
+            const badge = document.getElementById('adminStatusBadge');
+            const statusText = document.getElementById('adminStatusText');
+            if (badge && statusText) {
+                badge.classList.remove('offline', 'online', 'watching', 'teaching');
+                badge.classList.add(status);
+                statusText.textContent = message;
+                adminStatus = status;
+                console.log('Admin status updated:', status, message);
+            }
+        };
+
+        window.addAdminActivity = function(message, type = '') {
+            const feed = document.getElementById('adminActivityFeed');
+            if (!feed) return;
+            const placeholder = feed.querySelector('[style*="italic"]');
+            if (placeholder) feed.innerHTML = '';
+            const item = document.createElement('div');
+            item.className = 'admin-activity-item';
+            if (type) item.classList.add(type);
+            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            item.innerHTML = `${message} <span class="activity-time">[${time}]</span>`;
+            feed.insertBefore(item, feed.firstChild);
+            while (feed.children.length > 10) feed.removeChild(feed.lastChild);
+            feed.scrollTop = 0;
+        };
+
+        window.showAdminNotification = function(title, message, type = 'info') {
+            if (tata && tata[type]) {
+                tata[type](title, message, { animate: 'fade', position: 'tr', duration: 4000 });
+            }
+        };
+
+        window.setEditorVisualFeedback = function(isActive, isTeaching = false) {
+            const editorWrapper = document.querySelector('.CodeMirror');
+            if (editorWrapper) {
+                editorWrapper.classList.toggle('admin-active', isActive && !isTeaching);
+                editorWrapper.classList.toggle('admin-teaching', isTeaching);
+            }
+        };
+
+        // Attach admin event listeners
+        socket.on('admin-joined', function(data) {
+            console.log('Admin joined event received:', data);
+            updateAdminStatus('online', '👨‍🏫 Admin Online');
+            addAdminActivity('🟢 Admin joined the room', 'admin-joined');
+            showAdminNotification('Admin Online', 'Your teacher has joined the room', 'success');
+            setEditorVisualFeedback(false);
+        });
+
+        socket.on('admin-left', function(data) {
+            console.log('Admin left event received:', data);
+            updateAdminStatus('offline', 'Admin Offline');
+            addAdminActivity('⚫ Admin left the room', 'admin-activity-item');
+            showAdminNotification('Admin Offline', 'Your teacher has left the room', 'warn');
+            setEditorVisualFeedback(false);
+        });
+
+        socket.on('admin-viewing-you', function(data) {
+            console.log('Admin viewing you event received:', data);
+            updateAdminStatus('watching', '👀 Admin Watching You');
+            addAdminActivity('👀 Admin is viewing your code', 'admin-watching');
+            showAdminNotification('Admin Watching', 'Your teacher is viewing your code', 'info');
+            setEditorVisualFeedback(true, false);
+        });
+
+        socket.on('admin-stopped-viewing', function(data) {
+            updateAdminStatus('online', '👨‍🏫 Admin Online');
+            setEditorVisualFeedback(false);
+        });
+
+        socket.on('admin-grading', function(data) {
+            addAdminActivity('📊 Admin opened submissions page', 'admin-grading');
+            showAdminNotification('Grading Mode', 'Admin is reviewing all submissions', 'info');
+        });
+
+        // Visibility tracking
+        socket.on('visibility-change', ({ username, roomId, action }) => {
+            if (!username || !roomId || !action) return;
+            try {
+                const el = document.createElement('div');
+                el.classList.add('visibility-change-message');
+                const time = new Date().toLocaleTimeString();
+                el.textContent = `[${time}] User ${username} in room ${roomId} ${action}`;
+                if (adminPanel) {
+                    adminPanel.appendChild(el);
+                    adminPanel.scrollTop = adminPanel.scrollHeight;
+                }
+            } catch (e) {
+                console.error('Error updating visibility:', e);
+            }
+        });
+
+        // Tab visibility tracking
+        let tabSwitchCount = 0;
+        const MAX_TAB_SWITCHES = 7;
+        document.addEventListener('visibilitychange', function () {
+            try {
+                if (!socket.connected) return;
+                if (document.visibilityState === 'hidden') {
+                    socket.emit('page-visibility-change', {
+                        state: 'hidden',
+                        count: ++tabSwitchCount,
+                        timestamp: new Date().toISOString()
+                    });
+                    if (tata && tata.warn) {
+                        tata.warn('Warning', 'Tab switch detected! This event has been logged.', {
+                            animate: 'fade',
+                            position: 'tm'
+                        });
+                    }
+                    if (tabSwitchCount >= MAX_TAB_SWITCHES) {
+                        const leaveButton = document.getElementById('leaveroom');
+                        if (leaveButton) {
+                            if (tata && tata.error) {
+                                tata.error('Test Aborted', 'Maximum tab switches exceeded. Leaving room...', {
+                                    animate: 'fade',
+                                    position: 'tm'
+                                });
+                            }
+                            leaveButton.click();
+                        }
+                    }
+                } else {
+                    socket.emit('page-visibility-change', {
+                        state: 'visible',
+                        count: tabSwitchCount,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            } catch (error) {
+                console.error('Error in visibility change handler:', error);
+            }
+        });
+
+        console.log('Admin activity tracking initialized successfully');
+    }
+
+    // Start initialization
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAdminActivityTracking);
+    } else {
+        initAdminActivityTracking();
+    }
+})();
+</script>

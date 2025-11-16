@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('partials/idehead') %>
+        <link rel="stylesheet" href="/stylesheets/codemirror.css">
+        <link rel="stylesheet" href="/stylesheets/dracula.css">
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            // Safely expose ICE server config (supports TURN) from backend to client
+            window.WEBRTC_ICE_SERVERS = JSON.parse('<%- JSON.stringify(WEBRTC_ICE_SERVERS || []) %>');
+            window.WEBRTC_FORCE_TURN = JSON.parse('<%- JSON.stringify(!!WEBRTC_FORCE_TURN) %>');
+        </script>
+</head>
+
+<style>
+    /* Add this CSS to your adminpanel.ejs file or include it in your CSS file */
+    #tabalert {
+        height: 410px;
+        overflow-y: auto;
+        padding: 10px;
+    }
+
+    .visibility-change-message {
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #f0f0f0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        animation: fadeInUp 0.5s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .stu-list {
+        padding: 12px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .editor { /* ensure editor column reserves space */
+        min-width: 720px;
+        max-width: 720px;
+        min-height: 630px;
+    }
+    .CodeMirror { /* fallback in case external stylesheet not loaded */
+        height: 630px !important;
+    }
+</style>
+
+
+<body>
+
+    <div class="wrapper">
+        <div class="title">
+            <%= createdby %>
+        </div>
+        <div class="ide-wrapper">
+            <div class="ide-head">
+                <!-- Lab Name header -->
+                <div class="lab-name">
+                    <%= labname %>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button type="button" class="btn btn-beauty" id='report' title="Open grading & submissions">📊 <span style="margin-left:6px;">View All Submissions</span></button>
+                    <button type="button" class="dlt-room btn btn-danger" id='deleteroom'>Delete Room</button>
+                    <label style="display:flex; align-items:center; gap:6px; margin-left:10px; font-size:13px;">
+                        <input type="checkbox" id="broadcastToggle" />
+                        <span>Share Editor to Students</span>
+                    </label>
+                    <div style="display:flex; align-items:center; gap:6px; margin-left:10px; font-size:13px;">
+                                    <select id="allottedQuestionSelect" multiple style="min-width:300px; padding:6px; max-width:520px;">
+                                                        <option value="" disabled selected>Select allotted question…</option>
+                                                                                <% (questionStatements || []).forEach(function(q, i){ %>
+                                                                                    <option value="<%= i %>" <%= (Array.isArray(allottedQuestions) && allottedQuestions.includes(q)) ? 'selected' : (allottedQuestion && allottedQuestion === q ? 'selected' : '') %>><%= (q.split('\n')[0] || '').slice(0, 100) %><%= (q.length > 100 ? '…' : '') %></option>
+                                                        <% }) %>
+                                                </select>
+                        <span id="selectedCount" style="background:#eef4ff; color:#0d6efd; border:1px solid #cfe2ff; padding:2px 6px; border-radius:12px; font-size:12px;">0 selected</span>
+                                                <button id="setAllottedQuestionBtn" class="btn btn-beauty" title="Set selected question for all students">Set Allotted</button>
+                                        </div>
+                </div>
+            </div>
+            <div class="ide-layout">
+
+                <div class="ide-main">
+                    <div class="student-list">
+                        <h4 class="stu-title">Student List</h4>
+                        <p style="font-size: 12px; color: #666; margin: 5px 10px; line-height: 1.4;">
+                            <strong>Tip:</strong> Click on any student (active or inactive) to view their code. 
+                            Use "View All Submissions" button to see complete history with timestamps.
+                        </p>
+                        <!-- ---List here--- -->
+                        <div id='userlist'>
+                            <p style="color: #999; font-size: 14px; padding: 10px; text-align: center;">No students joined yet</p>
+                        </div>
+                        <!-- Class Chat Panel -->
+                        <div id="classChat" style="margin:10px; border:1px solid #e0e0e0; border-radius:8px; background:#fff; display:flex; flex-direction:column; height:260px;">
+                            <div style="padding:8px 10px; border-bottom:1px solid #e0e0e0; display:flex; justify-content:space-between; align-items:center;">
+                                <strong style="font-size:13px; color:#0d6efd;">💬 Class Chat</strong>
+                                <button id="classChatRefresh" style="background:none; border:none; color:#0d6efd; cursor:pointer; font-size:12px;">↻</button>
+                            </div>
+                            <div id="classChatMessages" style="flex:1; overflow-y:auto; padding:8px; font-size:12px; line-height:1.4;">
+                                <div style="color:#888; font-style:italic; text-align:center; margin-top:20px;">No messages yet</div>
+                            </div>
+                            <div style="border-top:1px solid #e0e0e0; padding:6px 8px; display:flex; gap:6px;">
+                                <input id="classChatInput" type="text" placeholder="Type message..." style="flex:1; padding:6px 8px; font-size:12px; border:1px solid #ccc; border-radius:6px;" maxlength="500" />
+                                <button id="classChatSend" class="btn btn-sm btn-beauty" style="min-width:70px;">Send</button>
+                            </div>
+                        </div>
+
+                        <!-- Inline Student Video Container -->
+                        <div id="inlineStudentVideos" style="margin:10px; border:1px solid #e0e0e0; border-radius:8px; background:#fff; padding:8px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e0e0e0; padding-bottom:6px; margin-bottom:4px;">
+                                <strong style="font-size:13px; color:#0d6efd;">🎥 Live Student Streams</strong>
+                                <small style="color:#666;">Auto-populates on watch</small>
+                            </div>
+                            <div id="inlineStudentVideoGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px;"></div>
+                            <div id="inlineStudentVideoEmpty" style="color:#888; font-style:italic; font-size:12px; text-align:center; padding:12px;">No active streams</div>
+                        </div>
+
+
+                    </div>
+                    <div class="editor">
+                        <!-- ---Editor here--- -->
+                        <textarea id="code" name="code" value=''></textarea>
+                    </div>
+                    <div class="ide-functions">
+                        <div class="io-func">
+                            <div class="input">
+                                <!-- --inputs-- -->
+                                <h4 class="input-title">Input</h4>
+                                <textarea type="text" class="inputs" id='codeinput' value=''></textarea>
+                            </div>
+                            <hr>
+                            <div class="output">
+                                <h4 class="output-title">Output</h4>
+                                <!-- --output-- -->
+                                <div id="output"></div>
+                            </div>
+                            <!-- Relocated Proctoring Snapshots Panel (test classes only) -->
+                            <% if (typeof testTime !== 'undefined' && Number(testTime) > 0) { %>
+                            <div id="proctorSnapshotsPanel" style="margin:14px 0 4px 0; border:1px solid #e0e0e0; border-radius:10px; background:#fff; padding:10px; display:flex; flex-direction:column; gap:8px; max-height:300px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <h4 style="margin:0; font-size:13px; color:#0d6efd; display:flex; align-items:center; gap:6px;">📸 Proctoring Snapshots <small id="snapshotLastUpdate" style="color:#666; font-weight:400; margin-left:6px; font-size:10px;">(loading…)</small></h4>
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        <select id="snapshotStudentFilter" style="padding:4px 6px; font-size:11px; border:1px solid #ccc; border-radius:6px; background:#fafafa; min-width:120px;">
+                                            <option value="">All Students</option>
+                                        </select>
+                                        <button id="snapshotRefreshBtn" class="btn btn-sm btn-beauty" style="font-size:11px; padding:3px 8px;">Refresh</button>
+                                    </div>
+                                </div>
+                                <div id="snapshotGridWrapper" style="flex:1; overflow-y:auto;">
+                                    <div id="snapshotGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:6px;"></div>
+                                    <div id="snapshotEmpty" style="color:#777; font-style:italic; font-size:11px; text-align:center; margin-top:10px;">No snapshots yet</div>
+                                </div>
+                                <small style="font-size:10px; color:#666;">Auto-captured every ~20s. Grid trimmed client-side.</small>
+                            </div>
+                            <% } %>
+                        </div>
+                        <div class="stu-btns run-submit">
+                            <button class="stu-btn run btn" id='runcode'>Run</button>
+                            <button class="stu-btn report btn" id='report'>Report</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="vids" id="tabalert">
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="position: fixed; bottom: 0; width: 100%; background-color: #1a1a1a; color: white; text-align: center; padding: 5px;">
+        &copy; Archit Mahajan And Team
+    </footer>
+
+        <script id="room-questions" type="application/json"><%- JSON.stringify(questionStatements || []) %></script>
+        <script>
+        // Add this code to your admin.js file
+        document.addEventListener('DOMContentLoaded', function () {
+            const socket = window.socket || io(); // Reuse shared socket
+            window.socket = socket;
+            const adminPanel = document.getElementById('tabalert');
+            const setBtn = document.getElementById('setAllottedQuestionBtn');
+            const select = document.getElementById('allottedQuestionSelect');
+            const roomId = window.location.toString().split('admin/')[1].split('/')[0];
+                        // Provide full questions to JS safely via JSON script tag
+                        try {
+                            const jsonEl = document.getElementById('room-questions');
+                            window.roomQuestions = JSON.parse((jsonEl && jsonEl.textContent) || '[]');
+                        } catch (_) { window.roomQuestions = []; }
+
+            function updateSelectedCount(){
+                try {
+                    const countEl = document.getElementById('selectedCount');
+                    if (!countEl || !select) return;
+                    const count = Array.from(select.options).filter(o => o.selected && o.value !== '').length;
+                    countEl.textContent = `${count} selected`;
+                } catch(_) {}
+            }
+
+            if (setBtn && select) {
+                // Initialize selected count on load
+                updateSelectedCount();
+                // Update on change
+                select.addEventListener('change', updateSelectedCount);
+                setBtn.addEventListener('click', async function(){
+                    try {
+                        const selected = Array.from(select.options).filter(o => o.selected && o.value !== '').map(o => parseInt(o.value, 10)).filter(n => !Number.isNaN(n));
+                        if (selected.length === 0) return;
+                        const questions = selected.map(i => (window.roomQuestions && window.roomQuestions[i]) || '').filter(Boolean);
+                        if (questions.length === 0) return;
+                        // Persist on server (supports multiple)
+                        await axios.post('/api/v1/setallottedquestion', { roomId, questions });
+                        // Broadcast live to students (multiple)
+                        socket.emit('admin-set-allotted-questions', { roomId, questions });
+                        try { tata.success('Allotted questions updated'); } catch(_) {}
+                    } catch (e) {
+                        console.error('Failed to set allotted questions', e);
+                        try { tata.error('Failed to set allotted questions'); } catch(_) {}
+                    }
+                });
+            }
+
+            // Update the visibility change event listener in admin.js
+            socket.on('visibility-change', ({ username, roomId, action, url }) => {
+                // Create a new div element for the visibility change message
+                const visibilityChangeElement = document.createElement('div');
+                visibilityChangeElement.classList.add('visibility-change-message'); // Add CSS class
+
+                // Get the current time
+                const currentTime = new Date();
+                const formattedTime = currentTime.toLocaleTimeString(); // Format the time as per your requirement
+
+                // Set the content of the message with the timestamp
+                visibilityChangeElement.textContent = `[${formattedTime}] User ${username} in room ${roomId} ${action}`;
+
+                // Append the visibility change message to the admin panel
+                adminPanel.appendChild(visibilityChangeElement);
+
+                // Scroll to the bottom of the admin panel to show the latest message
+                adminPanel.scrollTop = adminPanel.scrollHeight;
+            });
+
+        });
+
+
+    </script>
+
+
+
+
+
+    <script type="text/javascript" src="/javascripts/codemirrorlib/codemirror.min.js">
+    </script>
+    <script>
+        var languageid = '<%- JSON.stringify(language) %>';
+    </script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/closebrackets.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/python.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/brace-fold.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/clike.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/matchbracket.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/foldcode.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="/javascripts/tata.js"></script>
+    <script type="text/javascript" src="/javascripts/admin.js"></script>
+    <script type="text/javascript" src="/javascripts/runcode.js"></script>
+        <script>
+                // Admin side class chat handlers
+                (function(){
+                    const socket = window.socket || io();
+                    window.socket = socket;
+                    const msgsEl = document.getElementById('classChatMessages');
+                    const inputEl = document.getElementById('classChatInput');
+                    const sendBtn = document.getElementById('classChatSend');
+                    const refreshBtn = document.getElementById('classChatRefresh');
+                    const roomId = window.location.toString().split('admin/')[1]?.split('/')[0];
+                    function esc(str){ return String(str).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+                    function render(messages){
+                        if (!msgsEl) return;
+                        if (!messages || !messages.length){ msgsEl.innerHTML='<div style="color:#888; font-style:italic; text-align:center; margin-top:20px;">No messages yet</div>'; return; }
+                        const parts=[];
+                        messages.forEach(m => {
+                            const date = new Date(m.ts || Date.now());
+                            const time = date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                            parts.push('<div style="margin-bottom:6px;">');
+                            parts.push('<span style="color:#0d6efd; font-weight:600;">'+esc(m.sender)+':</span> ');
+                            parts.push('<span style="color:#333;">'+esc(m.text)+'</span> ');
+                            parts.push('<span style="color:#999; font-size:10px;">['+time+']</span>');
+                            parts.push('</div>');
+                        });
+                        msgsEl.innerHTML = parts.join('');
+                        msgsEl.scrollTop = msgsEl.scrollHeight;
+                    }
+                    socket.on('class-chat-init', ({ messages }) => { render(messages); });
+                    socket.on('class-chat-new', (msg) => {
+                        if (!msgsEl) return;
+                        const existing = msgsEl.querySelector('div[style]') ? [] : null; // ignore placeholder detection
+                        const date = new Date(msg.ts || Date.now());
+                        const time = date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                        const line = document.createElement('div');
+                        line.style.marginBottom='6px';
+                        line.innerHTML = '<span style="color:#0d6efd; font-weight:600;">'+esc(msg.sender)+':</span> <span style="color:#333;">'+esc(msg.text)+'</span> <span style="color:#999; font-size:10px;">['+time+']</span>';
+                        // remove placeholder if present
+                        const placeholder = msgsEl.querySelector('div[style*="italic"]');
+                        if (placeholder) placeholder.remove();
+                        msgsEl.appendChild(line);
+                        msgsEl.scrollTop = msgsEl.scrollHeight;
+                    });
+                    sendBtn && sendBtn.addEventListener('click', () => {
+                        const v = inputEl.value.trim();
+                        if (!v) return;
+                        socket.emit('class-chat-send', { roomId, text: v });
+                        inputEl.value='';
+                    });
+                    inputEl && inputEl.addEventListener('keydown', e => { if (e.key==='Enter'){ sendBtn.click(); } });
+                    refreshBtn && refreshBtn.addEventListener('click', () => { socket.emit('class-chat-history', { roomId }); });
+                })();
+        </script>
+
+    <!-- Admin AV Broadcast UI -->
+    <div style="position: fixed; bottom: 48px; right: 16px; background: #ffffff; border:1px solid #e9ecef; box-shadow: 0 6px 16px rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; width: 320px; z-index: 1001;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <strong style="color:#0d6efd;">🎥 Camera & Mic Broadcast</strong>
+            <small id="avStatus" style="color:#6c757d;">Stopped</small>
+        </div>
+        <video id="adminPreview" autoplay playsinline muted style="width:100%; height:180px; background:#000; border-radius:6px; display:none;"></video>
+        <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
+            <button id="btnStartAV" class="btn btn-beauty">Start</button>
+            <button id="btnStopAV" class="btn btn-danger" disabled>Stop</button>
+            <button id="btnToggleMute" class="btn btn-secondary" disabled>Mute</button>
+        </div>
+    </div>
+
+    <script>
+        // Admin AV Broadcast Logic (WebRTC one-to-many)
+        (function(){
+            const socket = window.socket || io();
+            window.socket = socket;
+            const roomId = window.location.toString().split('admin/')[1].split('/')[0];
+            const preview = document.getElementById('adminPreview');
+            const btnStart = document.getElementById('btnStartAV');
+            const btnStop = document.getElementById('btnStopAV');
+            const btnMute = document.getElementById('btnToggleMute');
+            const statusEl = document.getElementById('avStatus');
+            let localStream = null;
+            // Map of viewer socket id -> RTCPeerConnection
+            const pcMap = new Map();
+            // ICE servers from server-side env (supports TURN when provided)
+            const ICE_SERVERS = (function(){
+                try { return JSON.parse('<%- JSON.stringify(WEBRTC_ICE_SERVERS || []) %>'); }
+                catch(_) { return [{ urls: ['stun:stun.l.google.com:19302'] }]; }
+            })();
+
+            function updateUI(running){
+                if (statusEl) statusEl.textContent = running ? 'Live' : 'Stopped';
+                if (preview) preview.style.display = running ? 'block' : 'none';
+                btnStart && (btnStart.disabled = running);
+                btnStop && (btnStop.disabled = !running);
+                btnMute && (btnMute.disabled = !running);
+            }
+
+            async function startAV(){
+                try{
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    preview.srcObject = localStream;
+                    updateUI(true);
+                    socket.emit('admin-broadcast-av-started', { roomId });
+                    tata.success('Broadcast', 'Camera & Mic live');
+                } catch(err){
+                    console.error('getUserMedia failed', err);
+                    tata.error('Broadcast', 'Failed to access camera/mic');
+                }
+            }
+
+            function stopAV(){
+                try{
+                    pcMap.forEach((pc) => { try{ pc.close(); } catch(_){} });
+                    pcMap.clear();
+                    if (localStream){
+                        localStream.getTracks().forEach(t => t.stop());
+                        localStream = null;
+                    }
+                    updateUI(false);
+                    socket.emit('admin-broadcast-av-stopped', { roomId });
+                    tata.warn('Broadcast', 'Stopped');
+                } catch(err){ console.error(err); }
+            }
+
+            btnStart && btnStart.addEventListener('click', startAV);
+            btnStop && btnStop.addEventListener('click', stopAV);
+            btnMute && btnMute.addEventListener('click', () => {
+                if (!localStream) return;
+                const audioTracks = localStream.getAudioTracks();
+                if (audioTracks.length){
+                    const enable = !audioTracks[0].enabled;
+                    audioTracks.forEach(t => t.enabled = enable);
+                    btnMute.textContent = enable ? 'Mute' : 'Unmute';
+                }
+            });
+
+            // When a viewer is ready, create a PC and send an offer
+            socket.on('viewer-ready', async ({ viewerSocketId, username }) => {
+                try{
+                    if (!localStream) return; // ignore if not live
+                    if (pcMap.has(viewerSocketId)) return; // already connected
+                    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+                    // Add tracks
+                    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+                    // ICE to viewer
+                    pc.onicecandidate = (ev) => {
+                        if (ev.candidate){
+                            socket.emit('webrtc-ice-candidate', { targetSocketId: viewerSocketId, candidate: ev.candidate });
+                        }
+                    };
+                    pc.onconnectionstatechange = () => {
+                        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed'){
+                            pcMap.delete(viewerSocketId);
+                        }
+                    };
+                    const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
+                    await pc.setLocalDescription(offer);
+                    pcMap.set(viewerSocketId, pc);
+                    socket.emit('webrtc-offer', { targetSocketId: viewerSocketId, sdp: pc.localDescription });
+                } catch(err){ console.error('viewer-ready handling failed', err); }
+            });
+
+            // Receive answers from viewers
+            socket.on('webrtc-answer', async ({ from, sdp }) => {
+                try{
+                    const pc = pcMap.get(from);
+                    if (!pc) return;
+                    await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+                } catch(err){ console.error('setRemoteDescription(answer) failed', err); }
+            });
+
+            // ICE from viewers
+            socket.on('webrtc-ice-candidate', async ({ from, candidate }) => {
+                try{
+                    const pc = pcMap.get(from);
+                    if (!pc || !candidate) return;
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch(err){ console.error('addIceCandidate from viewer failed', err); }
+            });
+
+            // Stop AV if server notifies
+            socket.on('admin-av-stopped', ({ roomId: r }) => {
+                stopAV();
+            });
+        })();
+    </script>
+
+    <!-- Student Video Modal -->
+    <div id="studentVideoModal" style="display:none; position:fixed; z-index:1002; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.6);">
+        <div style="background-color:#fff; margin:10% auto; padding:20px; border:1px solid #888; width:80%; max-width:720px; border-radius:8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
+                <h4 id="studentVideoTitle" style="margin:0; font-size:18px;">Student Live View</h4>
+                <button id="closeStudentVideo" style="border:none; background:transparent; font-size:24px; cursor:pointer; color:#888;">&times;</button>
+            </div>
+            <div style="position:relative;">
+                <video id="studentVideoStream" autoplay playsinline muted style="width:100%; height:auto; background:#000; border-radius:6px;"></video>
+                <button id="studentAudioUnmute" style="position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); background: rgba(0,0,0,0.85); color:#fff; border:none; padding:12px 18px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; display:none;">🔊 Click to Listen</button>
+            </div>
+            <!-- Admin self preview for two-way chat -->
+            <div style="display:flex; gap:14px; align-items:flex-start; margin-top:12px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:240px;">
+                    <h5 style="margin:4px 0; font-size:14px; color:#0d6efd;">Your Camera (Admin)</h5>
+                    <video id="adminSelfPreviewChat" autoplay playsinline muted style="width:100%; height:160px; background:#111; border-radius:6px; display:none;"></video>
+                    <p id="adminSelfPreviewStatus" style="margin:6px 0 0 0; font-size:12px; color:#666;">Not capturing</p>
+                </div>
+                <div style="flex:1; min-width:240px;">
+                    <h5 style="margin:4px 0; font-size:14px; color:#28a745;">Student Camera</h5>
+                    <!-- student video already above; we duplicate label for clarity -->
+                    <p style="margin:6px 0 0 0; font-size:12px; color:#666;">If either side pauses video, chat pauses.</p>
+                </div>
+            </div>
+            <p id="studentVideoStatus" style="text-align:center; margin-top:10px; color:#666;">Connecting...</p>
+        </div>
+    </div>
+
+</body>
+
+</html>

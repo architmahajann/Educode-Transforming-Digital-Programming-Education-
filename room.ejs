@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('partials/idehead') %>
+        <link rel="stylesheet" href="/stylesheets/codemirror.css">
+        <link rel="stylesheet" href="/stylesheets/dracula.css">
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            // Expose ICE servers for student page (supports TURN via env)
+            window.WEBRTC_ICE_SERVERS = JSON.parse('<%- JSON.stringify(WEBRTC_ICE_SERVERS || []) %>');
+            window.WEBRTC_FORCE_TURN = JSON.parse('<%- JSON.stringify(!!WEBRTC_FORCE_TURN) %>');
+        </script>
+
+        <style>
+            /* Add this CSS to your adminpanel.ejs file or include it in your CSS file */
+            #tabalerts {
+                height: 600px;
+                overflow-y: auto;
+                padding: 10px !important;
+                width: 100% !important; /* Override default width */
+            }
+
+            .vidss {
+                /* Keep sidebar compact and consistent with layout */
+                width: 15% !important;
+                min-width: unset !important;
+                max-width: 280px !important; /* prevent from growing too wide on large screens */
+            }
+
+            .visibility-change-message {
+                margin-bottom: 10px;
+                padding: 10px;
+                border-radius: 5px;
+                background-color: #f0f0f0;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                animation: fadeInUp 0.5s ease;
+            }
+
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .timer-container {
+                text-align: center;
+                margin-top: 10px;
+            }
+
+            .timer {
+                font-size: 12px;
+                font-weight: bold;
+                color: #fff;
+                background-color: #007bff;
+                padding: 10px 20px;
+                border-radius: 5px;
+                display: inline-block;
+                animation: pulse 1s infinite;
+            }
+
+            @keyframes pulse {
+                0% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+
+                50% {
+                    transform: scale(1.1);
+                    opacity: 0.8;
+                }
+
+                100% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+
+            .random-question p {
+                word-wrap: break-word;
+            }
+
+            /* Admin Activity Indicator */
+            .admin-status-badge {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+            }
+
+            .admin-status-badge.offline {
+                background: linear-gradient(135deg, #6c757d, #5a6268);
+                color: white;
+            }
+
+            .admin-status-badge.online {
+                background: linear-gradient(135deg, #28a745, #20c997);
+                color: white;
+            }
+
+            .admin-status-badge.watching {
+                background: linear-gradient(135deg, #007bff, #0056b3);
+                color: white;
+                animation: glow 2s ease-in-out infinite;
+            }
+
+            .admin-status-badge.teaching {
+                background: linear-gradient(135deg, #ffc107, #ff9800);
+                color: #333;
+                animation: glow 2s ease-in-out infinite;
+            }
+
+            @keyframes glow {
+                0%, 100% { box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+                50% { box-shadow: 0 4px 20px rgba(0,123,255,0.6); }
+            }
+
+            .status-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: white;
+                animation: blink 1.5s ease-in-out infinite;
+            }
+
+            @keyframes blink {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+
+            /* Admin Activity Feed */
+            .admin-activity-item {
+                padding: 8px 12px;
+                margin: 5px 0;
+                background: #f8f9fa;
+                border-left: 3px solid #007bff;
+                border-radius: 4px;
+                font-size: 12px;
+                animation: slideIn 0.3s ease;
+            }
+
+            .admin-activity-item.admin-joined {
+                border-left-color: #28a745;
+                background: #d4edda;
+            }
+
+            .admin-activity-item.admin-watching {
+                border-left-color: #007bff;
+                background: #cfe2ff;
+            }
+
+            .admin-activity-item.admin-teaching {
+                border-left-color: #ffc107;
+                background: #fff3cd;
+            }
+
+            .admin-activity-item.admin-grading {
+                border-left-color: #6f42c1;
+                background: #e7d7f7;
+            }
+
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateX(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+
+            .activity-time {
+                color: #6c757d;
+                font-size: 10px;
+                margin-left: 5px;
+            }
+
+            /* Editor visual feedback when admin is active */
+            .CodeMirror.admin-active {
+                border: 3px solid #007bff !important;
+                box-shadow: 0 0 15px rgba(0,123,255,0.3);
+                transition: all 0.3s ease;
+            }
+
+            .CodeMirror.admin-teaching {
+                border: 3px solid #ffc107 !important;
+                box-shadow: 0 0 15px rgba(255,193,7,0.4);
+            }
+
+            /* Activity feed header */
+            .activity-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 10px;
+                border-radius: 5px 5px 0 0;
+                font-weight: 600;
+                font-size: 14px;
+                margin: -10px -10px 10px -10px;
+                text-align: center;
+            }
+
+            /* Admin activity feed container */
+            #adminActivityFeed {
+                margin-bottom: 15px;
+                max-height: 200px;
+                overflow-y: auto;
+                background: white;
+                border-radius: 5px;
+                padding: 5px;
+            }
+
+            /* Left chat sidebar */
+            .chat-sidebar {
+                width: 17%;
+                min-width: 220px;
+                max-width: 280px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 10px;
+                background: #ffffff;
+                border-right: 1px solid #e0e0e0;
+                box-shadow: 0 0 4px rgba(0,0,0,0.05);
+            }
+            @media (max-width: 1100px){
+                .chat-sidebar { order: 2; width: 100%; max-width: none; border-right: none; border-top: 1px solid #e0e0e0; }
+            }
+            /* Class chat panel tweaks for left placement */
+            #classChat { height: 340px; }
+            #classChatMessages { font-size: 12px; }
+            .chat-help-note { font-size:11px; color:#666; margin:0; }
+        </style>
+</head>
+
+<body>
+    <!-- Admin Status Badge -->
+    <div class="admin-status-badge offline" id="adminStatusBadge">
+        <span class="status-dot"></span>
+        <span id="adminStatusText">Admin Offline</span>
+    </div>
+
+    <div class="wrapper">
+        <div class="title">
+            <%= username %>
+        </div>
+        <div class="ide-wrapper">
+            <div class="ide-head">
+                <div class="stu-lab-name lab-name" id='labname'>
+                    Labname:
+                    <%= labname %>
+                </div>
+                <div style="margin-left: -28rem;" class="by" id='by'>By:
+                    <%= by %><span></span>
+
+                </div>
+                <% if (testTimeLimit && testTimeLimit > 0) { %>
+                <div style="margin-left: -18rem;" class="timer-container">
+                    <div id="timer" class="timer"></div>
+                </div>
+                <% } else { %>
+                <div style="margin-left: -18rem;" class="timer-container">
+                    <div class="timer" style="background-color: #28a745;">Practice Mode</div>
+                </div>
+                <% } %>
+                <button class="dlt-room btn" id='leaveroom'>Leave Room</button>
+            </div>
+            <div class="ide-layout">
+
+                <!-- Left Sidebar: Class Chat (moved here) -->
+                <div class="chat-sidebar" id="leftChatSidebar">
+                    <!-- Class Chat Panel (Student Side) -->
+                    <div id="classChat" style="margin-bottom:10px; border:1px solid #e0e0e0; border-radius:8px; background:#fff; display:flex; flex-direction:column; height:340px;">
+                        <div style="padding:6px 8px; border-bottom:1px solid #e0e0e0; display:flex; justify-content:space-between; align-items:center;">
+                            <strong style="font-size:13px; color:#0d6efd;">💬 Class Chat</strong>
+                            <button id="classChatRefresh" style="background:none; border:none; color:#0d6efd; cursor:pointer; font-size:12px;" title="Refresh messages">↻</button>
+                        </div>
+                        <div id="classChatMessages" style="flex:1; overflow-y:auto; padding:6px; line-height:1.4;">
+                            <div style="color:#888; font-style:italic; text-align:center; margin-top:16px;">No messages yet</div>
+                        </div>
+                        <div style="border-top:1px solid #e0e0e0; padding:6px 8px; display:flex; gap:6px;">
+                            <input id="classChatInput" type="text" placeholder="Message..." style="flex:1; padding:6px 8px; font-size:12px; border:1px solid #ccc; border-radius:6px;" maxlength="500" />
+                            <button id="classChatSend" class="btn btn-sm btn-success" style="min-width:65px;">Send</button>
+                        </div>
+                    </div>
+                    <p class="chat-help-note">Use class chat to ask doubts or share clarifications. Max 500 chars.</p>
+                </div>
+
+                <div class="ide-main">
+                    <div class="editor stu-editor">
+                        <!-- Editor setup -->
+                        <textarea id="code" name="code" value=''></textarea>
+
+                    </div>
+                    <div class="ide-functions stu-functions">
+                        <div class="io-func">
+                            <div class="input">
+                                <!-- --inputs-- -->
+                                <h4 class="input-title">Input</h4>
+                                <textarea type="text" class="inputs" id='codeinput' value=''></textarea>
+                            </div>
+                            <hr>
+                            <div class="output">
+                                <h4 class="output-title">Output</h4>
+                                <!-- --output-- -->
+                                <div id="output"></div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="stu-btns run-submit">
+                            <button class="stu-btn run btn" id='runcode'>Run</button>
+                            <button class="stu-btn submit btn" id="submitcode">Submit</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="vidss" id="tabalerts">
+                    <div class="activity-header">
+                        📊 Admin Activity Feed
+                    </div>
+                    <div id="adminActivityFeed">
+                        <div class="admin-activity-item" style="text-align: center; color: #999; font-style: italic; padding: 20px;">
+                            Waiting for admin...
+                        </div>
+                    </div>
+                    <hr style="margin: 15px 0; border-color: #ddd;">
+                    <div class="admin-av-wrapper" style="background:#fff; border-radius:6px; padding:8px; margin-bottom:10px; position:relative;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <h3 style="color:#0d6efd; margin:0; font-size:14px;">🎥 Admin Live (camera & mic)</h3>
+                            <small id="adminAVStatus" style="color:#888;">Not live</small>
+                        </div>
+                        <div id="adminAVContainer" style="position:relative; display:none;">
+                            <video id="adminAV" autoplay playsinline controls style="width:100%; height:200px; background:#000; border-radius:6px;" muted></video>
+                            <button id="adminAVUnmute" style="position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); background: rgba(0,0,0,0.8); color:#fff; border:none; padding:12px 20px; border-radius:6px; cursor:pointer; font-size:14px; font-weight:bold;">🔊 Click to Listen</button>
+                        </div>
+                        <div id="adminAVPlaceholder" style="color:#999; font-style:italic; padding:20px; text-align:center; border:1px dashed #ddd; border-radius:4px;">
+                            Admin camera is not live yet
+                        </div>
+                    </div>
+                    <div class="admin-live-wrapper" style="background:#fff; border-radius:6px; padding:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <h3 style="color:#6f42c1; margin:0; font-size:14px;">👨‍🏫 Admin Live Code (read-only)</h3>
+                            <small id="adminLiveStatus" style="color:#888;">Not sharing</small>
+                        </div>
+                        <div id="adminLiveEditorWrapper" style="display:none;">
+                            <textarea id="adminLiveCode"></textarea>
+                        </div>
+                        <div id="adminLivePlaceholder" style="color:#999; font-style:italic; padding:20px; text-align:center; border:1px dashed #ddd; border-radius:4px;">
+                            Admin is not sharing code yet
+                        </div>
+                    </div>
+                    <hr style="margin: 15px 0; border-color: #ddd;">
+                                        <div class="random-question" style="padding: 15px; background-color: #f5f5f5; border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                        <h3 style="color: #007bff; margin-bottom: 15px; margin-top: 0; font-size: 16px;">📝 Alloted Question:</h3>
+                                                <div id="allottedQuestionContainer" style="background-color: white; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; max-height: 250px; overflow-y: auto;">
+                                                        <% if (Array.isArray(allottedQuestions) && allottedQuestions.length > 0) { %>
+                                                                <% allottedQuestions.forEach(function(q, idx){ %>
+                                                                    <div class="allotted-block" data-raw="<%- encodeURIComponent(q) %>" style="position:relative; padding-top:4px; margin-bottom:12px;">
+                                                                        <button type="button" class="copy-btn" title="Copy" style="position:absolute; top:0; right:0; border:none; background:#f1f5ff; color:#007bff; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Copy</button>
+                                                                        <pre style="font-size: 14px; line-height: 1.6; color: #333; white-space: pre-wrap; word-wrap: break-word; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; border-top: 1px solid #eee; padding-top:8px;"><%= q %></pre>
+                                                                    </div>
+                                                                <% }) %>
+                                                        <% } else { %>
+                                                                <p style="color: #888; font-style: italic; margin: 0;">No question assigned yet.</p>
+                                                        <% } %>
+                                                </div>
+                    </div>
+                    <hr style="margin: 15px 0; border-color: #ddd;">
+                    <div class="student-av-wrapper" style="background:#fff; border-radius:6px; padding:8px; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <h3 style="color:#28a745; margin:0; font-size:14px;">📹 Share Your Camera</h3>
+                            <small id="studentAVStatus" style="color:#888;">Not sharing</small>
+                        </div>
+                        <video id="studentPreview" autoplay playsinline muted style="width:100%; height:auto; background:#000; border-radius:6px; display:none;"></video>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <button id="btnShareCamera" class="btn btn-sm btn-success">Start Sharing</button>
+                            <button id="btnStopCamera" class="btn btn-sm btn-danger" style="display:none;">Stop Sharing</button>
+                        </div>
+                    </div>
+                    <div class="admin-chat-wrapper" style="background:#fff; border-radius:6px; padding:8px; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <h3 style="color:#0d6efd; margin:0; font-size:14px;">🗣 Admin Video Chat</h3>
+                            <small id="adminChatStatus" style="color:#888;">Idle</small>
+                        </div>
+                        <video id="adminRemoteChat" autoplay playsinline style="width:100%; height:180px; background:#000; border-radius:6px; display:none;"></video>
+                        <p style="font-size:11px; color:#666; margin-top:6px;">Two-way chat activates when admin opens your live view. Your audio/video is already shared if you clicked Start Sharing.</p>
+                    </div>
+                                <!-- Admin Camera Request Modal -->
+                                <div id="adminCamRequestModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:2000; align-items:center; justify-content:center;">
+                                    <div style="background:#fff; width:90%; max-width:420px; border-radius:10px; padding:24px; box-shadow:0 8px 28px rgba(0,0,0,0.25); animation: camReqFade 0.25s ease;">
+                                        <h4 style="margin:0 0 12px 0; font-size:18px; display:flex; align-items:center; gap:6px; color:#0d6efd;">👨‍🏫 Admin Camera Request</h4>
+                                        <p id="adminCamRequestText" style="margin:0 0 18px 0; font-size:14px; line-height:1.5; color:#333;">Your instructor is requesting to view your camera. Please choose whether to allow access.</p>
+                                        <div style="display:flex; gap:12px; justify-content:flex-end;">
+                                            <button id="adminCamDecline" class="btn btn-sm btn-danger" style="min-width:90px;">Decline</button>
+                                            <button id="adminCamAccept" class="btn btn-sm btn-success" style="min-width:120px;">Allow Camera</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <style>
+                                    @keyframes camReqFade { from {opacity:0; transform:translateY(12px);} to {opacity:1; transform:translateY(0);} }
+                                </style>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="position: fixed; bottom: 0; width: 100%; background-color: #1a1a1a; color: white; text-align: center; padding: 5px;">
+        &copy; Archit Mahajan And Team
+    </footer>
+
+    <!-- Display test time limit as minutes -->
+    <script>
+        // Fetching test time limit from backend
+        const testTimeLimit = Number("<%= (typeof testTimeLimit !== 'undefined' && testTimeLimit !== null && testTimeLimit !== '') ? testTimeLimit : 0 %>");
+
+        // Only set up timer if there's a time limit (test mode)
+        if (testTimeLimit > 0) {
+            // Calculate end time
+            const endTime = new Date().getTime() + (testTimeLimit * 60 * 1000);
+            
+            // Update timer every second
+            const timerInterval = setInterval(function () {
+                const now = new Date().getTime();
+                const distance = endTime - now;
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                const timerElement = document.getElementById('timer');
+                
+                if (timerElement) {
+                    timerElement.innerHTML = minutes + "m " + seconds + "s ";
+                }
+                
+                // If the count down is over, leave the room
+                if (distance < 0) {
+                    document.getElementById('leaveroom')?.click();
+                    document.getElementById('submitcode')?.click();
+                    clearInterval(timerInterval);
+                    if (timerElement) {
+                        timerElement.innerHTML = "EXPIRED";
+                    }
+                }
+            }, 1000);
+        }
+    </script>
+
+    <script>
+        // Ensure a single shared socket instance for the student page
+        document.addEventListener('DOMContentLoaded', function () {
+            const socket = window.socket || io();
+            window.socket = socket;
+            const adminPanel = document.getElementById('tabalert');
+
+            // Socket connection event handlers
+            socket.on('connect', () => {
+                console.log('Connected to server');
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Connection error:', error);
+                tata.error('Connection Error', 'Failed to connect to server', {
+                    animate: 'fade',
+                    position: 'tm'
+                });
+            });
+
+            socket.on('disconnect', (reason) => {
+                console.log('Disconnected:', reason);
+                tata.warn('Disconnected', 'Lost connection to server', {
+                    animate: 'fade',
+                    position: 'tm'
+                });
+            });
+
+            // Update the visibility change event listener
+            socket.on('visibility-change', ({ username, roomId, action, url }) => {
+                if (!username || !roomId || !action) {
+                    console.error('Invalid visibility change data received');
+                    return;
+                }
+
+                try {
+                    // Create a new div element for the visibility change message
+                    const visibilityChangeElement = document.createElement('div');
+                    visibilityChangeElement.classList.add('visibility-change-message');
+
+                    // Get the current time
+                    const currentTime = new Date();
+                    const formattedTime = currentTime.toLocaleTimeString();
+
+                    // Set the content of the message with the timestamp
+                    visibilityChangeElement.textContent = `[${formattedTime}] User ${username} in room ${roomId} ${action}`;
+
+                    // Append the visibility change message to the admin panel if it exists
+                    if (adminPanel) {
+                        adminPanel.appendChild(visibilityChangeElement);
+                        adminPanel.scrollTop = adminPanel.scrollHeight;
+                    }
+                } catch (error) {
+                    console.error('Error updating visibility:', error);
+                }
+            });
+
+        });
+
+
+    </script>
+
+    <script>
+        let tabSwitchCount = 0;
+        const MAX_TAB_SWITCHES = 7;
+        
+        document.addEventListener('visibilitychange', function () {
+            try {
+                if (!socket || !socket.connected) {
+                    console.error('Socket not connected');
+                    return;
+                }
+
+                if (document.visibilityState === 'hidden') {
+                    // Page is hidden, notify admin and alert the user
+                    socket.emit('page-visibility-change', {
+                        state: 'hidden',
+                        count: ++tabSwitchCount,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    tata.warn('Warning', 'Tab switch detected! This event has been logged.', {
+                        animate: 'fade',
+                        position: 'tm'
+                    });
+
+                    if (tabSwitchCount >= MAX_TAB_SWITCHES) {
+                        const leaveButton = document.getElementById('leaveroom');
+                        if (leaveButton) {
+                            tata.error('Test Aborted', 'Maximum tab switches exceeded. Leaving room...', {
+                                animate: 'fade',
+                                position: 'tm'
+                            });
+                            leaveButton.click();
+                        }
+                    }
+                } else {
+                    // Page is visible again
+                    socket.emit('page-visibility-change', {
+                        state: 'visible',
+                        count: tabSwitchCount,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            } catch (error) {
+                console.error('Error in visibility change handler:', error);
+            }
+        });
+    </script>
+
+    <!-- Admin Activity Tracking Script -->
+    <script>
+        // Admin activity tracking
+        let adminStatus = 'offline';
+        let lastAdminActivity = null;
+
+        // Update admin status badge
+        function updateAdminStatus(status, message) {
+            const badge = document.getElementById('adminStatusBadge');
+            const statusText = document.getElementById('adminStatusText');
+            
+            if (badge && statusText) {
+                // Remove all status classes
+                badge.classList.remove('offline', 'online', 'watching', 'teaching');
+                badge.classList.add(status);
+                statusText.textContent = message;
+                adminStatus = status;
+            }
+        }
+
+        // Add activity to feed
+        function addAdminActivity(message, type = '') {
+            const feed = document.getElementById('adminActivityFeed');
+            if (!feed) return;
+
+            // Clear placeholder if exists
+            const placeholder = feed.querySelector('[style*="italic"]');
+            if (placeholder) {
+                feed.innerHTML = '';
+            }
+
+            const activityItem = document.createElement('div');
+            activityItem.className = 'admin-activity-item';
+            if (type) activityItem.classList.add(type);
+
+            const time = new Date().toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            activityItem.innerHTML = `
+                ${message}
+                <span class="activity-time">[${time}]</span>
+            `;
+
+            // Add to top of feed
+            feed.insertBefore(activityItem, feed.firstChild);
+
+            // Keep only last 10 activities
+            while (feed.children.length > 10) {
+                feed.removeChild(feed.lastChild);
+            }
+
+            // Auto scroll to top
+            feed.scrollTop = 0;
+        }
+
+        // Show toast notification
+        function showAdminNotification(title, message, type = 'info') {
+            tata[type](title, message, {
+                animate: 'fade',
+                position: 'tr',
+                duration: 4000
+            });
+        }
+
+        // Apply visual feedback to editor
+        function setEditorVisualFeedback(isActive, isTeaching = false) {
+            const editorWrapper = document.querySelector('.CodeMirror');
+            if (editorWrapper) {
+                editorWrapper.classList.toggle('admin-active', isActive && !isTeaching);
+                editorWrapper.classList.toggle('admin-teaching', isTeaching);
+            }
+        }
+
+        // Listen for admin joining/leaving events
+        if (typeof socket !== 'undefined') {
+            // Admin joined the room
+            socket.on('admin-joined', function(data) {
+                updateAdminStatus('online', '👨‍🏫 Admin Online');
+                addAdminActivity('🟢 Admin joined the room', 'admin-joined');
+                showAdminNotification('Admin Online', 'Your teacher has joined the room', 'success');
+                setEditorVisualFeedback(false);
+            });
+
+            // Admin left the room
+            socket.on('admin-left', function(data) {
+                updateAdminStatus('offline', 'Admin Offline');
+                addAdminActivity('⚫ Admin left the room', 'admin-activity-item');
+                showAdminNotification('Admin Offline', 'Your teacher has left the room', 'warn');
+                setEditorVisualFeedback(false);
+            });
+
+            // Admin is viewing this student's code
+            socket.on('admin-viewing-you', function(data) {
+                updateAdminStatus('watching', '👀 Admin Watching You');
+                addAdminActivity('👀 Admin is viewing your code', 'admin-watching');
+                showAdminNotification('Admin Watching', 'Your teacher is viewing your code', 'info');
+                setEditorVisualFeedback(true, false);
+            });
+
+            // Admin stopped viewing this student
+            socket.on('admin-stopped-viewing', function(data) {
+                updateAdminStatus('online', '👨‍🏫 Admin Online');
+                setEditorVisualFeedback(false);
+            });
+
+            // Admin opened submissions/grading page
+            socket.on('admin-grading', function(data) {
+                addAdminActivity('📊 Admin opened submissions page', 'admin-grading');
+                showAdminNotification('Grading Mode', 'Admin is reviewing all submissions', 'info');
+            });
+        }
+    </script>
+    
+
+    <script type="text/javascript" src="/javascripts/codemirrorlib/codemirror.min.js">
+    </script>
+    <script>
+        var languageid = '<%= language ? encodeURIComponent(JSON.stringify(language)) : "" %>';
+        try {
+            if (languageid) {
+                languageid = decodeURIComponent(languageid);
+            }
+        } catch (error) {
+            console.error('Error parsing language:', error);
+            languageid = '';
+        }
+        
+        // Define username for client-side scripts
+        var username = '<%= username ? username : "Student" %>';
+    </script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/closebrackets.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/python.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/brace-fold.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/clike.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/foldcode.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/foldgutter.min.js"></script>
+    <script type="text/javascript" src="/javascripts/codemirrorlib/matchbracket.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script type="text/javascript" src="/javascripts/tata.js"></script>
+    <script type="text/javascript" src="/javascripts/script.js"></script>
+        <script>
+            // Setup read-only CodeMirror for Admin Live Code
+            (function(){
+                try {
+                    var adminLiveTA = document.getElementById('adminLiveCode');
+                    if (!adminLiveTA) return;
+                    window.adminLiveEditor = CodeMirror.fromTextArea(adminLiveTA, {
+                        mode: 'text/x-c++src',
+                        theme: 'dracula',
+                        lineNumbers: true,
+                        readOnly: 'nocursor',
+                        lineWrapping: true,
+                        foldGutter: true,
+                        gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
+                    });
+                    window.adminLiveEditor.setSize('100%', '200px');
+                } catch (e) {
+                    console.error('Failed to initialize admin live editor:', e);
+                }
+            })();
+        </script>
+        <script>
+            // Listen for admin live code broadcast
+            (function(){
+                if (typeof socket === 'undefined') return;
+                const status = document.getElementById('adminLiveStatus');
+                const editorWrapper = document.getElementById('adminLiveEditorWrapper');
+                const placeholder = document.getElementById('adminLivePlaceholder');
+                let applying = false;
+
+                function showLiveEditor() {
+                    if (editorWrapper) editorWrapper.style.display = 'block';
+                    if (placeholder) placeholder.style.display = 'none';
+                    if (status) {
+                        status.textContent = 'Sharing ●';
+                        status.style.color = '#28a745';
+                        status.style.fontWeight = 'bold';
+                    }
+                }
+
+                function hideLiveEditor() {
+                    if (editorWrapper) editorWrapper.style.display = 'none';
+                    if (placeholder) placeholder.style.display = 'block';
+                    if (status) {
+                        status.textContent = 'Not sharing';
+                        status.style.color = '#888';
+                        status.style.fontWeight = 'normal';
+                    }
+                }
+
+                socket.on('admin-live-code-full', ({ code }) => {
+                    try {
+                        if (!window.adminLiveEditor) return;
+                        applying = true;
+                        window.adminLiveEditor.setValue(code || '');
+                        applying = false;
+                        showLiveEditor();
+                        addAdminActivity && addAdminActivity('📡 Admin started sharing editor', 'admin-teaching');
+                        if (typeof showAdminNotification === 'function') {
+                            showAdminNotification('Code Sharing', 'Admin is now sharing their code', 'info');
+                        }
+                    } catch (e) { console.error('Error applying admin full code:', e); }
+                });
+
+                socket.on('admin-live-code-change', ({ changeObj }) => {
+                    try {
+                        if (!window.adminLiveEditor || !changeObj) return;
+                        if (!Array.isArray(changeObj.text)) return;
+                        applying = true;
+                        window.adminLiveEditor.replaceRange(changeObj.text, changeObj.from, changeObj.to, 'admin-live');
+                        applying = false;
+                        showLiveEditor();
+                    } catch (e) { console.error('Error applying admin live change:', e); }
+                });
+
+                // Listen for broadcast toggle off (we can infer this if no changes for a while, or add explicit event)
+                // For now, the editor stays visible once shared
+            })();
+        </script>
+        <script>
+            // Student: Admin AV (WebRTC) viewer
+            (function(){
+                const socket = window.socket || io();
+                window.socket = socket;
+                const videoEl = document.getElementById('adminAV');
+                const unmuteBtn = document.getElementById('adminAVUnmute');
+                const statusEl = document.getElementById('adminAVStatus');
+                const containerEl = document.getElementById('adminAVContainer');
+                const placeholderEl = document.getElementById('adminAVPlaceholder');
+                const urlParts = new URL(window.location.href);
+                const pathParts = urlParts.pathname.split('/');
+                const roomId = pathParts[pathParts.indexOf('joined') + 1];
+                let pc = null;
+                let lastOfferFrom = null;
+                const pendingIce = [];
+                
+                // ICE servers from server-side env (supports TURN when provided)
+                const ICE_SERVERS = (function(){
+                    try { return JSON.parse('<%- JSON.stringify(WEBRTC_ICE_SERVERS || []) %>'); }
+                    catch(_) { return [{ urls: ['stun:stun.l.google.com:19302'] }]; }
+                })();
+
+                console.log('[AV] Student viewer initialized for room:', roomId);
+
+                function setLiveUI(live){
+                    if (statusEl) {
+                        statusEl.textContent = live ? 'Live ●' : 'Not live';
+                        statusEl.style.color = live ? '#28a745' : '#888';
+                        statusEl.style.fontWeight = live ? 'bold' : 'normal';
+                    }
+                    if (containerEl) containerEl.style.display = live ? 'block' : 'none';
+                    if (placeholderEl) placeholderEl.style.display = live ? 'none' : 'block';
+                }
+
+                function cleanup(){
+                    console.log('[AV] Cleaning up connection');
+                    try { if (pc) pc.close(); } catch(_){}
+                    pc = null;
+                    lastOfferFrom = null;
+                    pendingIce.length = 0;
+                    if (videoEl && videoEl.srcObject){
+                        try { videoEl.srcObject.getTracks().forEach(t => t.stop()); } catch(_){}
+                        videoEl.srcObject = null;
+                    }
+                    setLiveUI(false);
+                }
+
+                async function initViewer(){
+                    try{
+                        if (pc) {
+                            console.log('[AV] Peer connection already exists');
+                            return;
+                        }
+                        console.log('[AV] Creating new peer connection with ICE servers:', ICE_SERVERS);
+                        pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+                        
+                        pc.onicecandidate = (ev) => {
+                            if (ev.candidate){
+                                console.log('[AV] Generated ICE candidate');
+                                if (lastOfferFrom) {
+                                    socket.emit('webrtc-ice-candidate', { targetSocketId: lastOfferFrom, candidate: ev.candidate });
+                                } else {
+                                    console.log('[AV] Queueing ICE candidate (no offer yet)');
+                                    pendingIce.push(ev.candidate);
+                                }
+                            } else {
+                                console.log('[AV] ICE gathering complete');
+                            }
+                        };
+                        
+                        pc.ontrack = (ev) => {
+                            console.log('[AV] Received track:', ev.track.kind, 'streams:', ev.streams.length);
+                            if (videoEl && ev.streams && ev.streams[0]){
+                                videoEl.srcObject = ev.streams[0];
+                                console.log('[AV] Attached stream to video element');
+                                // Try to autoplay (will be muted initially)
+                                videoEl.play().then(() => {
+                                    console.log('[AV] Video playing (muted)');
+                                    if (unmuteBtn) unmuteBtn.style.display = 'block';
+                                }).catch(err => {
+                                    console.warn('[AV] Autoplay failed:', err);
+                                    if (unmuteBtn) unmuteBtn.style.display = 'block';
+                                });
+                            }
+                        };
+                        
+                        pc.onconnectionstatechange = () => {
+                            console.log('[AV] Connection state:', pc.connectionState);
+                            if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                                cleanup();
+                            }
+                        };
+
+                        pc.oniceconnectionstatechange = () => {
+                            console.log('[AV] ICE connection state:', pc.iceConnectionState);
+                        };
+                        
+                        // Tell admin we are ready
+                        console.log('[AV] Emitting viewer-ready');
+                        socket.emit('viewer-ready', { roomId, username });
+                    } catch(err){ 
+                        console.error('[AV] initViewer failed:', err); 
+                    }
+                }
+
+                socket.on('admin-av-started', ({ roomId: r }) => {
+                    console.log('[AV] Admin started broadcasting in room:', r);
+                    setLiveUI(true);
+                    if (typeof addAdminActivity === 'function') {
+                        addAdminActivity('📹 Admin started camera/mic', 'admin-teaching');
+                    }
+                    if (typeof showAdminNotification === 'function') {
+                        showAdminNotification('Live Stream', 'Admin camera is now live', 'info');
+                    }
+                    initViewer();
+                });
+                
+                socket.on('admin-av-stopped', ({ roomId: r }) => {
+                    console.log('[AV] Admin stopped broadcasting in room:', r);
+                    if (typeof addAdminActivity === 'function') {
+                        addAdminActivity('📹 Admin stopped camera/mic', 'admin-activity-item');
+                    }
+                    cleanup();
+                });
+
+                socket.on('webrtc-offer', async ({ from, sdp }) => {
+                    console.log('[AV] Received offer from:', from);
+                    try{
+                        lastOfferFrom = from;
+                        if (!pc) await initViewer();
+                        
+                        console.log('[AV] Setting remote description');
+                        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+                        
+                        console.log('[AV] Creating answer');
+                        const answer = await pc.createAnswer();
+                        await pc.setLocalDescription(answer);
+                        
+                        console.log('[AV] Sending answer to admin');
+                        socket.emit('webrtc-answer', { targetSocketId: from, sdp: pc.localDescription });
+                        
+                        // Flush queued ICE candidates
+                        console.log('[AV] Flushing', pendingIce.length, 'queued ICE candidates');
+                        while (pendingIce.length) {
+                            const c = pendingIce.shift();
+                            socket.emit('webrtc-ice-candidate', { targetSocketId: from, candidate: c });
+                        }
+                        
+                        setLiveUI(true);
+                    } catch(err){ 
+                        console.error('[AV] Failed to handle offer:', err); 
+                    }
+                });
+
+                socket.on('webrtc-ice-candidate', async ({ from, candidate }) => {
+                    console.log('[AV] Received ICE candidate from admin');
+                    try{
+                        if (!pc) {
+                            console.warn('[AV] No peer connection yet, cannot add ICE');
+                            return;
+                        }
+                        if (!candidate) return;
+                        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                        console.log('[AV] Added ICE candidate');
+                    } catch(err){ 
+                        console.error('[AV] Failed to add ICE candidate:', err); 
+                    }
+                });
+                
+                // Unmute button handler
+                if (unmuteBtn && videoEl) {
+                    unmuteBtn.addEventListener('click', async () => {
+                        console.log('[AV] Unmute button clicked');
+                        try {
+                            videoEl.muted = false;
+                            await videoEl.play();
+                            unmuteBtn.style.display = 'none';
+                            console.log('[AV] Audio unmuted and playing');
+                            if (typeof tata !== 'undefined') {
+                                tata.success('Audio Enabled', 'You can now hear the admin');
+                            }
+                        } catch (e) {
+                            console.error('[AV] Failed to unmute:', e);
+                            if (typeof tata !== 'undefined') {
+                                tata.error('Audio Error', 'Failed to enable audio');
+                            }
+                        }
+                    });
+                }
+            })();
+        </script>
+        <script>
+            // Listen for allotted question updates from admin
+            (function(){
+                if (typeof socket === 'undefined') return;
+                const container = document.getElementById('allottedQuestionContainer');
+                function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+                function renderQuestions(questions){
+                    if (!container) return;
+                    if (Array.isArray(questions) && questions.length > 0){
+                        const parts = [];
+                        questions.forEach((q) => {
+                            const raw = encodeURIComponent(String(q||''));
+                            parts.push(`<div class=\"allotted-block\" data-raw=\"${raw}\" style=\"position:relative; padding-top:4px; margin-bottom:12px;\">`);
+                            parts.push(`<button type=\"button\" class=\"copy-btn\" title=\"Copy\" style=\"position:absolute; top:0; right:0; border:none; background:#f1f5ff; color:#007bff; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;\">Copy</button>`);
+                            parts.push(`<pre style=\"font-size: 14px; line-height: 1.6; color: #333; white-space: pre-wrap; word-wrap: break-word; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; border-top: 1px solid #eee; padding-top:8px;\">${escapeHtml(String(q||''))}</pre>`);
+                            parts.push(`</div>`);
+                        });
+                        container.innerHTML = parts.join('');
+                    } else {
+                        container.innerHTML = '<p style="color: #888; font-style: italic; margin: 0;">No question assigned yet.</p>';
+                    }
+                }
+                socket.on('allotted-question-updated', ({ question }) => {
+                    renderQuestions([question]);
+                });
+                socket.on('allotted-questions-updated', ({ questions }) => {
+                    renderQuestions(questions);
+                });
+
+                // Copy button handler (event delegation)
+                container.addEventListener('click', async (e) => {
+                    const btn = e.target.closest('.copy-btn');
+                    if (!btn) return;
+                    const block = btn.closest('.allotted-block');
+                    if (!block) return;
+                    try {
+                        const raw = block.getAttribute('data-raw') || '';
+                        const text = decodeURIComponent(raw);
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(text);
+                        } else {
+                            // Fallback
+                            const ta = document.createElement('textarea');
+                            ta.value = text;
+                            document.body.appendChild(ta);
+                            ta.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(ta);
+                        }
+                        try { tata.success('Copied', 'Question copied to clipboard'); } catch (_) {}
+                    } catch (err) {
+                        console.error('Copy failed', err);
+                        try { tata.error('Copy failed'); } catch (_) {}
+                    }
+                });
+            })();
+        </script>
+    <script type="text/javascript" src="/javascripts/runcode.js"></script>
+</body>
+
+</html>

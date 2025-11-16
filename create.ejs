@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('partials/head', {page: 'Create Room', menuId: 'create'}) %>
+</head>
+
+<body>
+    <img class="wave" src="">
+    <div class="container">
+        <div class="img">
+            <img src="/images/bg.png">
+        </div>
+        <div class="login-content">
+            <form id='createform'>
+                <img src="/images/avatar.svg">
+                <h2 class="title">Fill the details</h2>
+                <div class="input-div one">
+                    <div class="i">
+                        <!-- <i class="fas fa-user"></i> -->
+                    </div>
+                    <div class="div">
+                        <!-- <h5>Room name</h5> -->
+                        <input  required type="text" class="input" placeholder="Lab Name" value='' id='labname'>
+                    </div>
+                </div>
+                <div class="input-div two">
+                    <div class="i">
+                    </div>
+                    <div class="div">
+                        <input  required type="text" class="input" placeholder="User name" value="" id='createdby'>
+                    </div>
+                </div>
+                <div class="input-div three">
+                    <div class="i">
+                    </div>
+                    <!-- <div class="div"> -->
+                    <select required type="text" class="select" value="" id='language'>
+                            <option disabled selected value> -- select a language -- </option>
+                            <option value='103'>C (GCC 14.1.0)</option>
+                            <option value='105'>C++ (GCC 14.1.0)</option>
+                            <option value='91'>Java (JDK 17.0.6)</option>
+                            <option value="100">Python (3.12.5)</option>
+                            <option value="102">JavaScript (Node.js 22.08.0)</option>
+                            <option value="107">Go (1.23.5)</option>
+                            <option value="108">Rust (1.85.0)</option>
+                            <option value="101">TypeScript (5.6.2)</option>
+                            <option value="98">PHP (8.3.11)</option>
+                            <option value="43">HTML/CSS (Plain Text)</option>
+                        </select>
+                    <!-- </div> -->
+                </div>
+                
+                <div class="input-div three">
+                    <div class="i">
+                    </div>
+                    <select required type="text" class="select" value="" id='sessionType'>
+                            <option disabled selected value> -- select session type -- </option>
+                            <option value='practice'>Practice/Class Mode (No time limit, no test)</option>
+                            <option value='test'>Test/Exam Mode (Timed, with questions)</option>
+                        </select>
+                </div>
+                
+                <div class="input-div pass" id='timeLimitDiv' style="display: none;">
+                    <div class="i"></div>
+                    <div class="div">
+                        <input type="number" class="input" placeholder="Test Time Limit (minutes)" value="" id='testTimeLimit'>
+                    </div>
+                </div>
+
+                                <div class="input-div question" id='questionDiv' style="display: none;">
+                    <div class="i"></div>
+                    <div class="div">
+                                                <textarea class="input" placeholder="Enter questions. For multi-line questions (with code), separate each question by a blank line or a line containing only ---" id="questionStatements"></textarea>
+                                                <div style="font-size:12px; color:#666; margin-top:6px; line-height:1.4;">
+                                                    Tip: Use a separator line with three dashes (---) between questions to keep code blocks intact.
+                                                </div>
+                    </div>
+                </div>
+                
+                
+                <div class="input-div pass">
+                    <div class="i">
+                    </div>
+                    <div class="div">
+                        <input required type="password" class="input" placeholder="Enter Password" value="" id='password'>
+                    </div>
+                </div>
+                <!-- <a href="#">Create Room</a> -->
+                <button class="btn" type="submit" id='generatelink'>Get Link</button>
+            </form>
+        </div>
+
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-8 mx-auto" id='linkmodal'>
+
+            </div>
+        </div>
+    </div>
+    <footer style="position: fixed; bottom: 0; width: 100%; background-color: #1a1a1a; color: white; text-align: center; padding: 5px;">
+        &copy; Archit Mahajan And Team
+    </footer>
+    
+    <script>
+        // Show/hide fields based on session type
+        document.getElementById('sessionType').addEventListener('change', function() {
+            const sessionType = this.value;
+            const timeLimitDiv = document.getElementById('timeLimitDiv');
+            const questionDiv = document.getElementById('questionDiv');
+            const testTimeLimit = document.getElementById('testTimeLimit');
+            const questionStatements = document.getElementById('questionStatements');
+            
+            if (sessionType === 'test') {
+                // Test mode - show time limit and questions
+                timeLimitDiv.style.display = 'block';
+                questionDiv.style.display = 'block';
+                testTimeLimit.required = true;
+                questionStatements.required = true;
+            } else if (sessionType === 'practice') {
+                // Practice mode - hide time limit and questions
+                timeLimitDiv.style.display = 'none';
+                questionDiv.style.display = 'none';
+                testTimeLimit.required = false;
+                questionStatements.required = false;
+                testTimeLimit.value = ''; // Clear values
+                questionStatements.value = '';
+            }
+        });
+    </script>
+    
+    <script src="/javascripts/tata.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="/javascripts/roomCreation.js"></script>
+</body>

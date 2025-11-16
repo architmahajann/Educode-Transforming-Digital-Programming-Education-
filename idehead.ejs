@@ -1,0 +1,17 @@
+<title>IDE |
+    <%= typeof page !== 'undefined' ? page : 'Educode' %>
+</title>
+<meta charset="utf-8">
+<meta name="active-menu" content="<%= typeof menuId !== 'undefined' ? menuId : 'home' %>">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<% if (typeof JUDGE0_API_KEY !== 'undefined' && JUDGE0_API_KEY) { %>
+<meta name="judge0-api-key" content="<%- JUDGE0_API_KEY %>">
+<% } %>
+<!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<link rel="stylesheet" href="./stylesheets/style.css"> -->
+
+<link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+<link rel="stylesheet" type="text/css" href="/stylesheets/editor.css">
+<link href="https://fonts.googleapis.com/css?family=Poppins:600&display=swap" rel="stylesheet">
+<script src="https://kit.fontawesome.com/a81368914c.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
