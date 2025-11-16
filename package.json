@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "jsdom": "^27.1.0"
+  },
+  "dependencies": {
+    "minimist": "^1.2.8"
+  }
+}

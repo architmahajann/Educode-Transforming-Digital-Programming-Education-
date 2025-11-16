@@ -1,0 +1,164 @@
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    STUDENT VIEW - ADMIN ACTIVITY TRACKING                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                                          ╔═══════════════════════════════╗
+                                          ║  👀 Admin Watching You   ●   ║
+                                          ╚═══════════════════════════════╝
+                                                    ↑
+                                          Status Badge (Top-right)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  Student: John Doe                                                          │
+│  ────────────────────────────────────────────────────────────────────      │
+│                                                                             │
+│  ┌────────────────────────┐  ┌────────────────────────────────────────┐   │
+│  │   Labname: Practice    │  │   By: Teacher Name   ⏱ Practice Mode  │   │
+│  └────────────────────────┘  └────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌────────────────────────────────────┬───────────────────────────────┐   │
+│  │                                    │  📊 Admin Activity Feed       │   │
+│  │  ╔══════════════════════════════╗  │  ──────────────────────────   │   │
+│  │  ║                              ║  │                               │   │
+│  │  ║  // Your Code Here           ║  │  ✍️ Admin is making changes   │   │
+│  │  ║  function main() {           ║  │     to your code [2:35 PM]   │   │
+│  │  ║    console.log("Hello");     ║  │                               │   │
+│  │  ║  }                           ║  │  👀 Admin is viewing your     │   │
+│  │  ║                              ║  │     code [2:33 PM]           │   │
+│  │  ║                              ║  │                               │   │
+│  │  ╚══════════════════════════════╝  │  📊 Admin opened submissions  │   │
+│  │      ↑ Orange glow when teaching   │     page [2:30 PM]           │   │
+│  │                                    │                               │   │
+│  │  ┌─────────────────────────────┐  │  🟢 Admin joined the room     │   │
+│  │  │ Input:                      │  │     [2:25 PM]                 │   │
+│  │  │ ___________________________ │  │                               │   │
+│  │  └─────────────────────────────┘  │  ───────────────────────────   │   │
+│  │                                    │                               │   │
+│  │  ┌─────────────────────────────┐  │  📝 Alloted Question:         │   │
+│  │  │ Output:                     │  │  ────────────────────────     │   │
+│  │  │                             │  │  Write a function to...       │   │
+│  │  │ > Hello                     │  │                               │   │
+│  │  └─────────────────────────────┘  │                               │   │
+│  │                                    │                               │   │
+│  │  [Run] [Submit]                    │                               │   │
+│  └────────────────────────────────────┴───────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          TOAST NOTIFICATION EXAMPLES                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ╔═══════════════════════════╗         ╔═══════════════════════════╗
+    ║ ✅ Admin Online           ║         ║ 👀 Admin Watching         ║
+    ║ Your teacher has joined   ║         ║ Your teacher is viewing   ║
+    ║ the room                  ║         ║ your code                 ║
+    ╚═══════════════════════════╝         ╚═══════════════════════════╝
+        (Green, 4 seconds)                     (Blue, 4 seconds)
+
+    ╔═══════════════════════════╗         ╔═══════════════════════════╗
+    ║ ✍️ Teaching Mode          ║         ║ 📊 Grading Mode           ║
+    ║ Admin is editing your     ║         ║ Admin is reviewing all    ║
+    ║ code                      ║         ║ submissions               ║
+    ╚═══════════════════════════╝         ╚═══════════════════════════╝
+        (Orange, 4 seconds)                    (Purple, 4 seconds)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          STATUS BADGE VARIATIONS                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
+  │ ⚫ Admin Offline  ● │    │ 🟢 Admin Online   ● │    │ 👀 Admin Watching ● │
+  └─────────────────────┘    └─────────────────────┘    └─────────────────────┘
+        (Gray)                    (Green)                   (Blue + Glow)
+
+                             ┌─────────────────────┐
+                             │ ✍️ Admin Teaching ● │
+                             └─────────────────────┘
+                                (Orange + Glow)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          EDITOR VISUAL FEEDBACK                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Normal State:                Admin Watching:           Admin Teaching:
+  ┌──────────────┐            ┌══════════════┐          ┌══════════════┐
+  │              │            ║              ║          ║              ║
+  │  Your Code   │            ║  Your Code   ║          ║  Your Code   ║
+  │              │            ║              ║          ║              ║
+  └──────────────┘            ║              ║          ║              ║
+   No border                  ╚══════════════╝          ╚══════════════╝
+                               Blue glow ✨             Orange glow ✨
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             ACTIVITY TIMELINE                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  2:25 PM  🟢 ─┬─ Admin joins → Badge: "Admin Online"
+               │                Toast: "Admin Online"
+               │                Feed: "Admin joined the room"
+               │
+  2:30 PM  📊 ─┼─ Admin opens submissions → Feed: "Admin opened submissions"
+               │                            Toast: "Grading Mode"
+               │
+  2:33 PM  👀 ─┼─ Admin clicks on you → Badge: "Admin Watching You"
+               │                         Toast: "Admin Watching"
+               │                         Feed: "Admin is viewing your code"
+               │                         Editor: Blue border ✨
+               │
+  2:35 PM  ✍️ ─┼─ Admin types → Badge: "Admin Teaching"
+               │                 Toast: "Teaching Mode"
+               │                 Feed: "Admin is making changes to your code"
+               │                 Editor: Orange border ✨
+               │
+  2:40 PM  ⚫ ─┴─ Admin leaves → Badge: "Admin Offline"
+                                 Toast: "Admin Offline"
+                                 Feed: "Admin left the room"
+                                 Editor: No border
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          COLOR SCHEME REFERENCE                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Status          Color           Animation       Usage
+  ──────────────────────────────────────────────────────────────────────────
+  Offline         Gray            None            Admin not present
+  Online          Green           Pulsing dot     Admin in room
+  Watching        Blue            Glow effect     Admin viewing your code
+  Teaching        Orange          Glow effect     Admin editing your code
+  Grading         Purple          None            Admin reviewing submissions
+  ──────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         TECHNICAL FLOW DIAGRAM                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Admin Panel                    Server (Socket.io)              Student View
+  ───────────                    ──────────────────              ────────────
+
+  Admin opens panel   ──────>   emit('admin-page')   ────────>  Status: Online
+                                        │                        Badge: Green
+                                        │                        Toast: "Admin Online"
+                                        │                        Feed: Updated
+                                        │
+  Admin clicks       ──────>   emit('change-user')  ────────>  Status: Watching
+  student name                          │                        Badge: Blue
+                                        │                        Toast: "Admin Watching"
+                                        │                        Editor: Blue border
+                                        │
+  Admin types in     ──────>   emit('admindatachang') ──────>  Status: Teaching
+  student editor                        │                        Badge: Orange
+                                        │                        Toast: "Teaching Mode"
+                                        │                        Editor: Orange border
+                                        │
+  Admin clicks       ──────>   emit('admin-viewing-  ──────>  Feed: "Grading Mode"
+  "View Submissions"            submissions')                  Toast: "Grading Mode"
+                                        │
+  Admin disconnects  ──────>   emit('disconnect')   ────────>  Status: Offline
+                                        │                        Badge: Gray
+                                        │                        Toast: "Admin Offline"
+                                        │                        Borders: Removed
+
+═══════════════════════════════════════════════════════════════════════════════
+                              END OF VISUAL GUIDE
+═══════════════════════════════════════════════════════════════════════════════
