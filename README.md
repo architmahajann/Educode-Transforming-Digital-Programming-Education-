@@ -1,0 +1,2 @@
+# Educode-Transforming-Digital-Programming-Education-
+EduCode is a secure platform for remote programming education, offering live coding, instant feedback, and real-time assessments. It features password-protected rooms, tab-switch alerts, and webcam snapshots to ensure exam integrity. The platform bridges the gap between theoretical learning and hands-on coding, enhancing practical programming skill
