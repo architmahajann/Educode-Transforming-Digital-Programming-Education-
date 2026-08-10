@@ -1,4 +1,4 @@
-# Educode: Transforming Digital Programming Education
+# Educode: "Transforming Digital Programming Education"
 Educode is a comprehensive platform designed to enhance E-Learning by providing a real-time interactive web-based lab environment for students and teachers. It integrates advanced proctoring features to ensure the integrity of online assessments, making it a perfect solution for remote learning and secure online examinations.
 
 <hr>
